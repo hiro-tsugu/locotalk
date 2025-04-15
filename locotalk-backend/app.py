@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from db_config import get_connection
@@ -7,16 +8,23 @@ import base64
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})  # フロントとの通信を許可
 
-# 📌 レポート一覧取得API
-@app.route('/api/reports/<int:municipality_id>', methods=['GET'])
-def get_reports(municipality_id):
+# 📌 レポート一覧取得API（クエリパラメータ版）
+@app.route('/api/reports', methods=['GET'])
+def get_reports_by_query():
+    municipality_id = request.args.get('municipality_id')
+
+    if not municipality_id:
+        return jsonify({'error': 'municipality_id is required'}), 400
+
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
+# nickname追加
     query = """
-        SELECT r.id, r.title, r.body, r.created_at, i.image_data
+        SELECT r.id, r.title, r.body, r.created_at, i.image_data, u.nickname
         FROM reports r
         LEFT JOIN images i ON r.image_id = i.id
+        LEFT JOIN users u ON r.user_id = u.id
         WHERE r.municipality_id = %s
         ORDER BY r.created_at DESC
     """
